@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Open Chat</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Open Chat</h1>
+    </header>
+    <main>
+      <div id="messages" class="messages"></div>
+      <div class="send">
+        <input id="msgInput" placeholder="Message" />
+        <button id="sendMsg">Send</button>
+      </div>
+    </main>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>

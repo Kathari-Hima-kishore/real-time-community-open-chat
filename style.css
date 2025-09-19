@@ -1,0 +1,76 @@
+* {
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #02203f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+#app {
+  width: 75%;
+  height: 75%;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  background: #0078d7;
+  color: #fff;
+  padding: 16px;
+  text-align: center;
+  font-size: 1.5em;
+}
+
+main {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 8px;
+  background: #f9f9f9;
+}
+
+.msg {
+  padding: 8px;
+  margin: 4px 0;
+  border-radius: 4px;
+  background: #e1f5fe;
+  color: #0078d7;
+}
+
+.send {
+  display: flex;
+  gap: 8px;
+}
+
+.send input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+}
+
+.send button {
+  padding: 8px;
+  background: #0078d7;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
