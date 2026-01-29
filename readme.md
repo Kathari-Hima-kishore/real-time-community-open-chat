@@ -130,24 +130,34 @@ This file configures routing, caching, and security for your Azure Static Web Ap
 ```json
 {
   "navigationFallback": {
-    "rewrite": "/index.html"
+    "rewrite": "/index.html",
+    "exclude": ["*.css", "*.js", "*.json"]
   },
   "routes": [
     {
       "route": "/*",
       "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/index.html",
+      "headers": {
+        "cache-control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
+      "route": "/*.{css,js}",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
     }
-  ],
-  "globalHeaders": {
-    "cache-control": "public, max-age=3600"
-  }
+  ]
 }
 ```
 
 Key features:
-*   **navigationFallback**: Ensures all routes redirect to `index.html` (SPA behavior)
-*   **routes**: Allows anonymous access to all routes
-*   **globalHeaders**: Sets cache control for better performance
+*   **navigationFallback**: Ensures all routes redirect to `index.html` (SPA behavior), with static files excluded
+*   **routes**: Allows anonymous access to all routes with granular caching headers
+*   **caching**: HTML files are not cached, while CSS/JS files have long-term caching for performance
 
 #### `.github/workflows/azure-static-web-apps.yml`
 
@@ -170,7 +180,7 @@ This GitHub Actions workflow automates deployment:
       match /databases/{database}/documents {
         match /messages/{message} {
           allow read: if true;
-          allow write: if request.auth != null || true; // Adjust based on your needs
+          allow write: if true; // For open chat; consider adding rate limiting via Firebase App Check
         }
       }
     }

@@ -143,12 +143,24 @@ Located in the root directory, this file controls various aspects of your Azure 
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/style.css", "/main.js"]
+    "exclude": ["*.css", "*.js", "*.json", "*.ico", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.svg"]
   },
   "routes": [
     {
       "route": "/*",
       "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/index.html",
+      "headers": {
+        "cache-control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
+      "route": "/*.{css,js}",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
     }
   ],
   "responseOverrides": {
@@ -162,20 +174,20 @@ Located in the root directory, this file controls various aspects of your Azure 
     ".js": "text/javascript",
     ".css": "text/css",
     ".html": "text/html"
-  },
-  "globalHeaders": {
-    "cache-control": "public, max-age=3600"
   }
 }
 ```
 
 **Key Configuration Options:**
 
-- **navigationFallback**: Ensures SPA routing works correctly
-- **routes**: Defines access control for different paths
+- **navigationFallback**: Ensures SPA routing works correctly, with static files excluded
+- **routes**: Defines access control and caching headers per route
 - **responseOverrides**: Custom error pages
 - **mimeTypes**: Ensures correct content types
-- **globalHeaders**: Sets HTTP headers for all responses
+
+**Important**: Notice how caching is configured:
+- HTML files use `no-cache` to ensure users always get the latest version
+- CSS/JS files use long-term caching with `immutable` for performance
 
 **Advanced Configuration Options:**
 
@@ -229,7 +241,7 @@ jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
@@ -347,12 +359,15 @@ service cloud.firestore {
     match /messages/{message} {
       allow read: if true;
       
-      // Allow write only to authenticated users or with rate limiting
-      allow write: if request.time > resource.data.lastWrite + duration.value(1, 's');
+      // Allow write for open chat. Consider using Firebase App Check for rate limiting
+      // and abuse prevention: https://firebase.google.com/docs/app-check
+      allow write: if true;
     }
   }
 }
 ```
+
+**Note**: For production deployments, consider implementing rate limiting using Firebase App Check or Cloud Functions to prevent abuse.
 
 ### 2. API Key Restrictions
 
@@ -373,11 +388,23 @@ Add CSP headers in `staticwebapp.config.json`:
 
 ```json
 {
-  "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com"
-  }
+  "routes": [
+    {
+      "route": "/*",
+      "headers": {
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; style-src 'self'"
+      }
+    }
+  ]
 }
 ```
+
+**Note**: This CSP configuration allows:
+- Scripts from the app itself and Firebase CDN
+- Connections to Firebase services
+- Styles from the app itself
+
+All inline scripts and styles are blocked for enhanced security.
 
 ### 4. HTTPS Enforcement
 
