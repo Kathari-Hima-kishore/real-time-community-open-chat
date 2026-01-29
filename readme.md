@@ -8,7 +8,8 @@
 *   🗣️ **Real-time Opinion Sharing**: Instantly share and view messages with other community members.
 *   ⚡ **Lightweight & Fast**: Built with pure JavaScript, CSS, and HTML for a quick and responsive experience.
 *   🎨 **Simple User Interface**: An intuitive and clean design focused on ease of use.
-*   🚀 **Easy Deployment**: Get started quickly by simply serving static files.
+*   🚀 **Easy Deployment**: Get started quickly by simply serving static files or deploy to Azure Static Web Apps.
+*   ☁️ **Azure Static Web Apps Ready**: Pre-configured for seamless deployment to Azure with GitHub Actions.
 *   🌐 **Open Platform**: A basic foundation for fostering open discussions without complex barriers.
 
 ## 🚀 Installation Guide
@@ -63,6 +64,171 @@ For a more robust development environment or to simulate a live server, you can 
     ```
 
     The application will typically be available at `http://localhost:8080`.
+
+## ☁️ Deployment to Azure Static Web Apps
+
+Azure Static Web Apps is a modern hosting service that automatically builds and deploys full stack web apps to Azure from a GitHub repository. This project includes ready-to-use configuration for seamless deployment.
+
+> 📘 **For comprehensive deployment guide, see [AZURE_DEPLOYMENT.md](AZURE_DEPLOYMENT.md)**
+
+### Prerequisites
+
+*   An [Azure account](https://azure.microsoft.com/free/) (free tier available)
+*   A [GitHub account](https://github.com)
+*   Your repository forked or cloned to your GitHub account
+
+### Step-by-Step Deployment Guide
+
+#### 1. Create an Azure Static Web App
+
+1.  Log in to the [Azure Portal](https://portal.azure.com)
+2.  Click **"Create a resource"**
+3.  Search for **"Static Web App"** and select it
+4.  Click **"Create"**
+5.  Fill in the details:
+    *   **Subscription**: Select your Azure subscription
+    *   **Resource Group**: Create new or use existing
+    *   **Name**: Choose a unique name for your app (e.g., `community-chat-app`)
+    *   **Plan type**: Select "Free" for development or "Standard" for production
+    *   **Region**: Choose a region closest to your users
+    *   **Deployment details**:
+        *   **Source**: Select "GitHub"
+        *   **Organization**: Your GitHub username
+        *   **Repository**: Select `real-time-community-open-chat`
+        *   **Branch**: Select `main` (or your default branch)
+    *   **Build Details**:
+        *   **Build Presets**: Select "Custom"
+        *   **App location**: `/` (root directory)
+        *   **Api location**: Leave empty (no API)
+        *   **Output location**: Leave empty (static files in root)
+6.  Click **"Review + Create"** then **"Create"**
+
+#### 2. Automatic Deployment
+
+Once created, Azure will:
+*   Automatically add a GitHub Actions workflow to your repository (if not present)
+*   Create a deployment secret (`AZURE_STATIC_WEB_APPS_API_TOKEN`) in your GitHub repository
+*   Trigger an automatic deployment
+
+The workflow file is located at `.github/workflows/azure-static-web-apps.yml` in this repository.
+
+#### 3. Access Your Deployed App
+
+After deployment completes (usually 2-3 minutes):
+1.  Go to your Azure Static Web App resource in the Azure Portal
+2.  Click on the **URL** shown in the overview page
+3.  Your chat application is now live!
+
+### Configuration Files
+
+This project includes two configuration files for Azure Static Web Apps:
+
+#### `staticwebapp.config.json`
+
+This file configures routing, caching, and security for your Azure Static Web App:
+
+```json
+{
+  "navigationFallback": {
+    "rewrite": "/index.html"
+  },
+  "routes": [
+    {
+      "route": "/*",
+      "allowedRoles": ["anonymous"]
+    }
+  ],
+  "globalHeaders": {
+    "cache-control": "public, max-age=3600"
+  }
+}
+```
+
+Key features:
+*   **navigationFallback**: Ensures all routes redirect to `index.html` (SPA behavior)
+*   **routes**: Allows anonymous access to all routes
+*   **globalHeaders**: Sets cache control for better performance
+
+#### `.github/workflows/azure-static-web-apps.yml`
+
+This GitHub Actions workflow automates deployment:
+*   Triggers on push to `main` branch and pull requests
+*   Uses `Azure/static-web-apps-deploy@v1` action
+*   Automatically builds and deploys your app
+*   No build step needed since this is a static HTML application
+
+### Environment Variables and Firebase Configuration
+
+**Important**: The Firebase configuration in `main.js` contains API keys that are exposed in the client-side code. For production deployments:
+
+1.  **Firebase Security Rules**: Ensure your Firebase project has proper security rules configured
+2.  **Firestore Rules**: Configure rules to prevent unauthorized access:
+
+    ```javascript
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /messages/{message} {
+          allow read: if true;
+          allow write: if request.auth != null || true; // Adjust based on your needs
+        }
+      }
+    }
+    ```
+
+3.  **API Key Restrictions**: In Firebase Console, restrict your API key to specific domains:
+    *   Go to Google Cloud Console → Credentials
+    *   Select your API key
+    *   Add your Azure Static Web App URL to **Application restrictions**
+
+### Custom Domain (Optional)
+
+To use a custom domain with Azure Static Web Apps:
+
+1.  Go to your Static Web App in Azure Portal
+2.  Click **"Custom domains"** in the left menu
+3.  Click **"+ Add"**
+4.  Choose between:
+    *   **Custom domain on other DNS**: If your domain is managed elsewhere
+    *   **Custom domain on Azure DNS**: If you use Azure DNS
+5.  Follow the wizard to:
+    *   Add DNS records (CNAME or TXT)
+    *   Validate domain ownership
+    *   Enable HTTPS (automatic with Azure)
+
+### Monitoring and Logs
+
+Azure Static Web Apps provides built-in monitoring:
+
+*   **Application Insights**: View application telemetry
+*   **Deployment History**: Track all deployments in the Azure Portal
+*   **GitHub Actions Logs**: View detailed deployment logs in your repository's Actions tab
+
+### Troubleshooting
+
+**Deployment fails:**
+*   Check GitHub Actions logs in your repository
+*   Verify the `AZURE_STATIC_WEB_APPS_API_TOKEN` secret is set correctly
+*   Ensure file paths in the workflow are correct
+
+**App loads but chat doesn't work:**
+*   Verify Firebase configuration is correct in `main.js`
+*   Check browser console for JavaScript errors
+*   Ensure Firebase Firestore is enabled in your Firebase project
+
+**404 errors:**
+*   Verify `staticwebapp.config.json` is in the root directory
+*   Check that navigation fallback is configured correctly
+
+### Costs
+
+Azure Static Web Apps offers a **Free tier** that includes:
+*   100 GB bandwidth per month
+*   2 custom domains
+*   Free SSL certificates
+*   Automatic deployments
+
+The free tier is perfect for development and small projects. For production apps with higher traffic, consider the Standard tier.
 
 ## 💡 Usage Examples
 
