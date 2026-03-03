@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Open Chat</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+<body>
+  <!-- Animated gradient background -->
+  <div class="bg-gradient"></div>
+  
+  <div id="app" x-data="chatApp()" x-init="init()">
+    <!-- Glass header -->
+    <header class="glass-header">
+      <div class="header-content">
+        <div class="logo">
+          <span class="logo-icon">💬</span>
+          <h1>Open Chat</h1>
+        </div>
+        <div class="header-right">
+          <span class="online-badge" x-show="onlineCount > 0">
+            <span class="pulse"></span>
+            <span x-text="onlineCount === 1 ? '1 user online' : onlineCount + ' users online'"></span>
+          </span>
+          <button @click="changeName()" class="glass-btn settings-btn" title="Change display name">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main chat area -->
+    <main class="glass-main">
+      <!-- Typing indicator -->
+      <div class="typing-area" x-show="typingUsers.length > 0" x-transition.opacity>
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <span x-text="typingText"></span>
+      </div>
+
+      <!-- Messages container -->
+      <div id="messages" class="messages-container" x-ref="messagesContainer">
+        <template x-for="msg in messages" :key="msg.id">
+          <div 
+            class="message" 
+            :class="msg.from === userId ? 'message-own' : 'message-other'"
+            x-show="msg.text"
+            x-transition:enter="message-enter"
+          >
+            <!-- Avatar -->
+            <div class="message-avatar" :style="'background-color: ' + getAvatarColor(msg.displayName || msg.from)">
+              <span x-text="getInitials(msg.displayName || getOtherName(msg.from))"></span>
+            </div>
+            
+            <!-- Bubble -->
+            <div class="message-bubble">
+              <div class="message-header">
+                <span class="message-author" x-text="msg.from === userId ? displayName : (msg.displayName || getOtherName(msg.from))"></span>
+                <span class="message-time" x-text="formatTime(msg.ts)"></span>
+              </div>
+              <div class="message-content" x-html="parseContent(msg.text)"></div>
+            </div>
+          </div>
+        </template>
+        
+        <!-- Empty state -->
+        <div class="empty-state" x-show="messages.length === 0">
+          <span class="empty-icon">💭</span>
+          <p>No messages yet. Start the conversation!</p>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div class="input-area glass-input">
+        <div class="input-wrapper">
+          <input 
+            id="msgInput" 
+            type="text" 
+            placeholder="Type a message..." 
+            x-model="newMessage"
+            @input.debounce="handleTyping()"
+            @keydown.enter="sendMessage()"
+          >
+          <button @click="sendMessage()" class="send-btn" :disabled="!newMessage.trim()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
