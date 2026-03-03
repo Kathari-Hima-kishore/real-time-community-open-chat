@@ -102,6 +102,15 @@ function chatApp() {
             ...doc.data()
           }));
           this.$nextTick(() => this.scrollToBottom());
+        }, () => {
+          // Fallback: try without ordering
+          db.collection('messages').onSnapshot(snapshot => {
+            this.messages = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            })).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+            this.$nextTick(() => this.scrollToBottom());
+          });
         });
 
       // Listen for typing
@@ -114,45 +123,54 @@ function chatApp() {
           }
         });
         this.typingUsers = typers;
-      });
+      }, () => {});
 
       // Listen for online count (use timestamp-based query)
       this.setupOnlineCountListener();
     },
 
-    // Clean up stale presence entries
+    // Clean up stale presence entries (simplified - just skip if no permission)
     async cleanupStalePresence() {
-      const staleThreshold = Date.now() - PRESENCE_TIMEOUT;
       try {
-        const snapshot = await db.collection('presence').get();
-        const batch = db.batch();
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.ts < staleThreshold) {
-            batch.update(doc.ref, { online: false });
-          }
-        });
-        await batch.commit();
+        const snapshot = await db.collection('presence').limit(1).get();
+        if (snapshot.empty) return;
       } catch (e) {
-        console.log('Cleanup error:', e);
+        // Ignore permission errors
       }
     },
 
     // Setup online count listener with real-time updates
     setupOnlineCountListener() {
-      db.collection('presence')
-        .where('online', '==', true)
-        .onSnapshot(snapshot => {
-          const now = Date.now();
-          let count = 0;
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.ts && (now - data.ts) < PRESENCE_TIMEOUT) {
-              count++;
-            }
+      try {
+        db.collection('presence')
+          .where('online', '==', true)
+          .onSnapshot(snapshot => {
+            const now = Date.now();
+            let count = 0;
+            snapshot.forEach(doc => {
+              const data = doc.data();
+              if (data.ts && (now - data.ts) < PRESENCE_TIMEOUT) {
+                count++;
+              }
+            });
+            this.onlineCount = count;
+          }, () => {
+            // Fallback: try without query
+            db.collection('presence').onSnapshot(snapshot => {
+              const now = Date.now();
+              let count = 0;
+              snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.online && data.ts && (now - data.ts) < PRESENCE_TIMEOUT) {
+                  count++;
+                }
+              });
+              this.onlineCount = count;
+            });
           });
-          this.onlineCount = count;
-        });
+      } catch (e) {
+        this.onlineCount = 1;
+      }
     },
 
     // Display name management
@@ -234,7 +252,7 @@ function chatApp() {
           name: this.displayName || this.guestName || this.userId,
           online: true,
           ts: Date.now()
-        }, { merge: true });
+        }, { merge: true }).catch(() => {});
       }
     },
 
@@ -267,6 +285,8 @@ function chatApp() {
         text: text,
         ts: Date.now(),
         displayName: name
+      }).catch(() => {
+        alert('Failed to send message. Please check your Firebase rules.');
       });
 
       this.newMessage = '';
