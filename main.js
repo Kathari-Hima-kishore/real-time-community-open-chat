@@ -13,15 +13,34 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// Safe localStorage wrapper
+const storage = {
+  get: function(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  },
+  set: function(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+};
+
 // Avatar colors
 const avatarColors = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6'];
 const PRESENCE_TIMEOUT = 60000;
 const HEARTBEAT_INTERVAL = 30000;
 
 // Generate or retrieve unique user ID
-const userId = localStorage.getItem('user_id') || (() => {
+const userId = storage.get('user_id') || (() => {
   const id = Math.random().toString(36).slice(2, 9);
-  localStorage.setItem('user_id', id);
+  storage.set('user_id', id);
   return id;
 })();
 
@@ -60,11 +79,11 @@ function chatApp() {
 
     // Initialize
     async init() {
-      // Get display name from localStorage or generate guest name
-      this.displayName = localStorage.getItem('displayName') || '';
+      // Get display name from storage or generate guest name
+      this.displayName = storage.get('displayName') || '';
       if (!this.displayName) {
-        this.guestName = localStorage.getItem('guestName') || generateGuestName();
-        localStorage.setItem('guestName', this.guestName);
+        this.guestName = storage.get('guestName') || generateGuestName();
+        storage.set('guestName', this.guestName);
         this.displayName = this.guestName;
       }
 
@@ -149,7 +168,7 @@ function chatApp() {
         }
       }
       this.displayName = name;
-      localStorage.setItem('displayName', name);
+      storage.set('displayName', name);
       this.updatePresence();
     },
 
@@ -165,7 +184,7 @@ function chatApp() {
         }
       }
       this.displayName = name;
-      localStorage.setItem('displayName', name);
+      storage.set('displayName', name);
       this.updatePresence();
     },
 
@@ -283,4 +302,50 @@ function chatApp() {
 
     getOtherName(uid) {
       if (!uid) return 'Unknown';
-      const hash = uid.split('').reduce((a, c) => ((a << 5
+      const hash = uid.split('').reduce((a, c) => ((a << 5) - a) + c.charCodeAt(0), 0);
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const idx = Math.abs(hash) % (26 * 26 * 26);
+      const char1 = letters[Math.floor(idx / (26 * 26)) % 26];
+      const char2 = letters[Math.floor(idx / 26) % 26];
+      const char3 = letters[idx % 26];
+      return `User ${char1}${char2}${char3}`;
+    },
+
+    formatTime(ts) {
+      if (!ts) return '';
+      const now = Date.now();
+      const diff = now - ts;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (days >= 1) {
+        const date = new Date(ts);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return months[date.getMonth()] + ' ' + date.getDate() + ', ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      } else if (hours >= 1) {
+        return hours + 'h ago';
+      } else if (minutes >= 1) {
+        return minutes + 'm ago';
+      } else {
+        return 'now';
+      }
+    },
+
+    parseContent(text) {
+      if (!text) return '';
+      let result = text.replace(/<[^>]*>/g, '');
+      result = result.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      result = result.replace(/__(.+?)__/g, '<strong>$1</strong>');
+      result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      result = result.replace(/_(.+?)_/g, '<em>$1</em>');
+      result = result.replace(/`(.+?)`/g, '<code>$1</code>');
+      result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      const urlRegex = /(https?:\/\/[^\s<]+)/g;
+      result = result.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+      return result;
+    }
+  };
+}
