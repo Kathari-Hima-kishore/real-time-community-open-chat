@@ -1,12 +1,6 @@
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyB9UXuwY4xPIYE_Cj-MWQ2c6HCrQdSzhjE",
-  authDomain: "real-time-community-chat.firebaseapp.com",
-  projectId: "real-time-community-chat",
-  storageBucket: "real-time-community-chat.firebasestorage.app",
-  messagingSenderId: "181787914206",
-  appId: "1:181787914206:web:990d9e83cfaa00e34df74f",
-  measurementId: "G-ZQKVVHM3LS"
+
 };
 
 // Initialize Firebase
